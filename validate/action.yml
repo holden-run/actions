@@ -1,0 +1,28 @@
+name: 'Holden Validate'
+description: 'Validate holden.yml configuration'
+inputs:
+  paths:
+    description: 'Paths to validate (one per line). Defaults to repository root.'
+    required: false
+    default: '.'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Holden CLI
+      shell: bash
+      run: npm install -g @benjick/holden-cli
+    - name: Validate config
+      shell: bash
+      run: |
+        FAILED=0
+        while IFS= read -r dir; do
+          dir="$(echo "$dir" | xargs)"
+          [ -z "$dir" ] && continue
+          echo "Validating $dir..."
+          if ! (cd "$dir" && holden validate); then
+            FAILED=1
+          fi
+        done <<< "${{ inputs.paths }}"
+        if [ "$FAILED" -eq 1 ]; then
+          exit 1
+        fi

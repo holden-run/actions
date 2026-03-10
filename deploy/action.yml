@@ -1,0 +1,45 @@
+name: 'Holden Deploy'
+description: 'Trigger a Holden deployment via webhook with HMAC signature'
+inputs:
+  webhook-url:
+    description: 'Webhook base URL (e.g. https://holden.example.com/webhook)'
+    required: true
+  app-id:
+    description: 'App ID as registered in Holden'
+    required: true
+  webhook-secret:
+    description: 'Secret for HMAC-SHA256 signature (same as HOLDEN_WEBHOOK_SECRET)'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Trigger deploy
+      shell: bash
+      env:
+        WEBHOOK_BASE_URL: ${{ inputs.webhook-url }}
+        APP_ID: ${{ inputs.app-id }}
+        WEBHOOK_SECRET: ${{ inputs.webhook-secret }}
+      run: |
+        BODY=$(jq -n \
+          --arg ref "refs/heads/${GITHUB_REF_NAME}" \
+          --arg full_name "$GITHUB_REPOSITORY" \
+          --arg clone_url "https://github.com/${GITHUB_REPOSITORY}.git" \
+          '{ref: $ref, repository: {full_name: $full_name, clone_url: $clone_url}}')
+        SIGNATURE="sha256=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $NF}')"
+
+        WEBHOOK_URL="${WEBHOOK_BASE_URL%/}/${APP_ID}"
+        HTTP_CODE=$(curl -s -o /tmp/holden-deploy-response -w '%{http_code}' \
+          -X POST "$WEBHOOK_URL" \
+          -H "Content-Type: application/json" \
+          -H "X-Hub-Signature-256: $SIGNATURE" \
+          -H "X-GitHub-Event: push" \
+          -d "$BODY")
+
+        RESPONSE=$(cat /tmp/holden-deploy-response)
+
+        if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+          echo "Deploy triggered successfully (HTTP $HTTP_CODE): $RESPONSE"
+        else
+          echo "Deploy failed (HTTP $HTTP_CODE): $RESPONSE"
+          exit 1
+        fi
