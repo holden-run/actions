@@ -2,10 +2,7 @@ name: 'Holden Deploy'
 description: 'Trigger a Holden deployment via webhook with HMAC signature'
 inputs:
   webhook-url:
-    description: 'Webhook base URL (e.g. https://holden.example.com/webhook)'
-    required: true
-  app-id:
-    description: 'App ID as registered in Holden'
+    description: 'Webhook URL (e.g. https://holden.example.com/webhook)'
     required: true
   webhook-secret:
     description: 'Secret for HMAC-SHA256 signature (same as HOLDEN_WEBHOOK_SECRET)'
@@ -16,8 +13,7 @@ runs:
     - name: Trigger deploy
       shell: bash
       env:
-        WEBHOOK_BASE_URL: ${{ inputs.webhook-url }}
-        APP_ID: ${{ inputs.app-id }}
+        WEBHOOK_URL: ${{ inputs.webhook-url }}
         WEBHOOK_SECRET: ${{ inputs.webhook-secret }}
       run: |
         BODY=$(jq -n \
@@ -27,7 +23,6 @@ runs:
           '{ref: $ref, repository: {full_name: $full_name, clone_url: $clone_url}}')
         SIGNATURE="sha256=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $NF}')"
 
-        WEBHOOK_URL="${WEBHOOK_BASE_URL%/}/${APP_ID}"
         HTTP_CODE=$(curl -s -o /tmp/holden-deploy-response -w '%{http_code}' \
           -X POST "$WEBHOOK_URL" \
           -H "Content-Type: application/json" \

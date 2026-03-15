@@ -24,21 +24,21 @@ For monorepos with multiple apps:
 
 ### deploy
 
-Triggers a Holden deployment via webhook with HMAC-SHA256 signing.
+Triggers a Holden deployment via webhook with HMAC-SHA256 signing. The payload includes the repository URL, so Holden automatically matches it to registered apps.
 
 ```yaml
 - uses: holden-run/actions/deploy@main
   with:
     webhook-url: ${{ secrets.HOLDEN_WEBHOOK_URL }}
-    app-id: my-app
     webhook-secret: ${{ secrets.HOLDEN_WEBHOOK_SECRET }}
 ```
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `webhook-url` | Yes | Webhook base URL (e.g. `https://holden.example.com/webhook`) |
-| `app-id` | Yes | App ID as registered in Holden |
+| `webhook-url` | Yes | Webhook URL (e.g. `https://holden.example.com/webhook`) |
 | `webhook-secret` | Yes | Secret for HMAC signature (same as `HOLDEN_WEBHOOK_SECRET`) |
+
+Both values are the same across all apps — set them as organization-level secrets.
 
 ## Full Example
 
@@ -75,7 +75,6 @@ jobs:
         uses: holden-run/actions/deploy@main
         with:
           webhook-url: ${{ secrets.HOLDEN_WEBHOOK_URL }}
-          app-id: my-app
           webhook-secret: ${{ secrets.HOLDEN_WEBHOOK_SECRET }}
 ```
 
