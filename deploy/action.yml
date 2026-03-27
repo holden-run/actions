@@ -35,7 +35,6 @@ runs:
           -X POST "$WEBHOOK_URL" \
           -H "Content-Type: application/json" \
           -H "X-Hub-Signature-256: $SIGNATURE" \
-          -H "X-GitHub-Event: push" \
           -d "$BODY")
 
         RESPONSE=$(cat /tmp/holden-deploy-response)
