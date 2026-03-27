@@ -7,6 +7,9 @@ inputs:
   webhook-secret:
     description: 'Secret for HMAC-SHA256 signature (same as HOLDEN_WEBHOOK_SECRET)'
     required: true
+  stack:
+    description: 'Deploy only this stack (e.g. "production"). If omitted, deploys all stacks.'
+    required: false
 runs:
   using: 'composite'
   steps:
@@ -15,7 +18,12 @@ runs:
       env:
         WEBHOOK_URL: ${{ inputs.webhook-url }}
         WEBHOOK_SECRET: ${{ inputs.webhook-secret }}
+        STACK: ${{ inputs.stack }}
       run: |
+        if [ -n "$STACK" ]; then
+          WEBHOOK_URL="${WEBHOOK_URL}?stack=${STACK}"
+        fi
+
         BODY=$(jq -n \
           --arg ref "refs/heads/${GITHUB_REF_NAME}" \
           --arg full_name "$GITHUB_REPOSITORY" \
